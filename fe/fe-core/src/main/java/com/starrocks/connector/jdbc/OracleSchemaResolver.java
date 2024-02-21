@@ -86,43 +86,46 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     public Type convertColumnType(int dataType, String typeName, int columnSize, int digits) {
         PrimitiveType primitiveType;
         switch (dataType) {
-            case Types.BIT:
-                primitiveType = PrimitiveType.BOOLEAN;
-                break;
-            case Types.SMALLINT:
-                primitiveType = PrimitiveType.SMALLINT;
-                break;
-            case Types.INTEGER:
-                primitiveType = PrimitiveType.INT;
-                break;
-            case Types.BIGINT:
-                primitiveType = PrimitiveType.BIGINT;
-                break;
-            case Types.REAL:
-                primitiveType = PrimitiveType.FLOAT;
-                break;
-            case Types.DOUBLE:
-                primitiveType = PrimitiveType.DOUBLE;
-                break;
+            // VARCHAR2(n)
+            case Types.VARCHAR:
+            // NVARCHAR2(n)
+            case Types.NVARCHAR:
+                return ScalarType.createVarcharType(columnSize);
+            // CHAR(n)
+            case Types.CHAR:
+            // NCHAR(n)
+            case Types.NCHAR:
+                return ScalarType.createCharType(columnSize);
+            // RAW(n)
+            case Types.VARBINARY:
+                return ScalarType.createVarbinary(columnSize);
+            // LONG RAW
+            case Types.LONGVARBINARY:
+                return ScalarType.createVarbinary(1048576);
+            // LONG
+            case Types.LONGVARCHAR:
+            // CLOB
+            case Types.CLOB:
+            // NCLOB
+            case Types.NCLOB:
+                return ScalarType.createDefaultString();
+            // NUMBER[(p[,s])]
             case Types.NUMERIC:
                 primitiveType = PrimitiveType.DECIMAL32;
                 break;
-            case Types.CHAR:
-                return ScalarType.createCharType(columnSize);
-            case Types.VARCHAR:
-                if (typeName.equalsIgnoreCase("varchar") || typeName.equalsIgnoreCase("varchar2")) {
-                    return ScalarType.createVarcharType(columnSize);
-                } else if (typeName.equalsIgnoreCase("text")) {
-                    return ScalarType.createVarcharType(ScalarType.getOlapMaxVarcharLength());
-                }
-                primitiveType = PrimitiveType.UNKNOWN_TYPE;
+            // FLOAT(n)
+            case Types.FLOAT:
+                primitiveType = PrimitiveType.FLOAT;
                 break;
+            // DATE, @TODO, should be DATETIME?
             case Types.DATE:
                 primitiveType = PrimitiveType.DATE;
                 break;
             case Types.TIMESTAMP:
+                // Actually StarRocks doesn't support TIMESTAMP now.
                 primitiveType = PrimitiveType.DATETIME;
                 break;
+            // ROWID, UROWID(n), BLOB, BFILE
             default:
                 primitiveType = PrimitiveType.UNKNOWN_TYPE;
                 break;
@@ -132,7 +135,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             return ScalarType.createType(primitiveType);
         } else {
             int precision = columnSize + max(-digits, 0);
-            // if user not specify numeric precision and scale, the default value is 0,
+            // if user not specify NUMBER precision and scale, the default value is 0,
             // we can't defer the precision and scale, can only deal it as string.
             if (precision == 0) {
                 return ScalarType.createVarcharType(ScalarType.getOlapMaxVarcharLength());
