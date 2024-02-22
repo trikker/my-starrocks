@@ -154,18 +154,18 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 primitiveType = PrimitiveType.DOUBLE;
                 break;
 
-            // DATE, TIMESTAMP
+            // DATE, TIMESTAMP [(fractional_seconds_precision)]
             case Types.TIMESTAMP:
                 primitiveType = PrimitiveType.DATETIME;
                 break;
 
-            // INTERVAL, ROWID, UROWID, BFILE, BINARY_FLOAT, BINARY_DOUBLE, TIMESTAMP WITH [LOCAL] TIME ZONE
-            // UROWID, BLOB and BFILE
+            // BINARY_FLOAT, BINARY_DOUBLE, INTERVAL, ROWID, TIMESTAMP WITH [LOCAL] TIME ZONE, UROWID, BLOB, BFILE
             default:
-                if ((typeName.startsWith("INTERVAL") || typeName.equals("ROWID") ||
-                        typeName.equals("BINARY_FLOAT") || typeName.equals("BINARY_DOUBLE")) ||
-                        // TIMESTAMP[(s)] WITH TIME ZONE and TIMESTAMP[(s)] WITH LOCAL TIME ZONE
-                        typeName.endsWith("TIME ZONE")) {
+                if (typeName.equals("BINARY_FLOAT") || typeName.equals("BINARY_DOUBLE")) {
+                    primitiveType = PrimitiveType.DOUBLE;
+                } else if (typeName.startsWith("INTERVAL") || typeName.equals("ROWID") ||
+                    // TIMESTAMP[(s)] WITH TIME ZONE and TIMESTAMP[(s)] WITH LOCAL TIME ZONE
+                    typeName.endsWith("TIME ZONE")) {
                     return ScalarType.createVarcharType(100);
                 } else if (typeName.equals("UROWID")) {
                     return ScalarType.createVarcharType(4000);
