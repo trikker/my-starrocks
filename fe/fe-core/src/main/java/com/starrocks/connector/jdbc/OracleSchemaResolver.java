@@ -43,13 +43,13 @@ import static java.lang.Math.max;
 public class OracleSchemaResolver extends JDBCSchemaResolver {
 
     private static HashSet<String> internalSchemaSet = new HashSet<>(Arrays.asList(
-        "ANONYMOUS", "APPQOSSYS", "AUDSYS", "CTXSYS", "DBSFWUSER",
-        "DBSNMP", "DIP", "DVF", "DVSYS", "GGSYS", "GSMADMIN_INTERNAL",
-        "GSMCATUSER", "GSMUSER", "LBACSYS", "MDDATA", "MDSYS",
-        "OJVMSYS", "OLAPSYS", "ORACLE_OCM", "ORDDATA", "ORDPLUGINS",
-        "ORDSYS", "OUTLN", "REMOTE_SCHEDULER_AGENT", "SI_INFORMTN_SCHEMA",
-        "SYS", "SYS$UMF", "SYSBACKUP", "SYSDG", "SYSKM",
-        "SYSRAC", "SYSTEM", "WMSYS", "XDB", "XS$NULL"
+            "ANONYMOUS", "APPQOSSYS", "AUDSYS", "CTXSYS", "DBSFWUSER",
+            "DBSNMP", "DIP", "DVF", "DVSYS", "GGSYS", "GSMADMIN_INTERNAL",
+            "GSMCATUSER", "GSMUSER", "LBACSYS", "MDDATA", "MDSYS",
+            "OJVMSYS", "OLAPSYS", "ORACLE_OCM", "ORDDATA", "ORDPLUGINS",
+            "ORDSYS", "OUTLN", "REMOTE_SCHEDULER_AGENT", "SI_INFORMTN_SCHEMA",
+            "SYS", "SYS$UMF", "SYSBACKUP", "SYSDG", "SYSKM",
+            "SYSRAC", "SYSTEM", "WMSYS", "XDB", "XS$NULL"
     ));
     public Collection<String> listSchemas(Connection connection) {
         try (ResultSet resultSet = connection.getMetaData().getSchemas()) {
