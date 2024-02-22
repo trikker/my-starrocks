@@ -114,7 +114,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     @Override
     public Type convertColumnType(int dataType, String typeName, int columnSize, int digits) {
         PrimitiveType primitiveType;
-            switch (dataType) {
+        switch (dataType) {
             // VARCHAR2(size [BYTE | CHAR])
             case Types.VARCHAR:
             // NVARCHAR2(size)
