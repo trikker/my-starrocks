@@ -15,6 +15,7 @@
 
 package com.starrocks.connector.jdbc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.starrocks.catalog.Column;
 import com.starrocks.catalog.JDBCTable;
@@ -24,19 +25,50 @@ import com.starrocks.catalog.Table;
 import com.starrocks.catalog.Type;
 import com.starrocks.common.DdlException;
 import com.starrocks.common.util.TimeUtils;
+import com.starrocks.connector.exception.StarRocksConnectorException;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Arrays;
 
 import static java.lang.Math.max;
 
 public class OracleSchemaResolver extends JDBCSchemaResolver {
 
+    private static HashSet<String> internalSchemaSet = new HashSet<>(Arrays.asList(
+        "ANONYMOUS", "APPQOSSYS", "AUDSYS", "CTXSYS", "DBSFWUSER",
+        "DBSNMP", "DIP", "DVF", "DVSYS", "GGSYS", "GSMADMIN_INTERNAL",
+        "GSMCATUSER", "GSMUSER", "LBACSYS", "MDDATA", "MDSYS",
+        "OJVMSYS", "OLAPSYS", "ORACLE_OCM", "ORDDATA", "ORDPLUGINS",
+        "ORDSYS", "OUTLN", "REMOTE_SCHEDULER_AGENT", "SI_INFORMTN_SCHEMA",
+        "SYS", "SYS$UMF", "SYSBACKUP", "SYSDG", "SYSKM",
+        "SYSRAC", "SYSTEM", "WMSYS", "XDB", "XS$NULL"
+    ));
+    public Collection<String> listSchemas(Connection connection) {
+        try (ResultSet resultSet = connection.getMetaData().getSchemas()) {
+            ImmutableSet.Builder<String> schemaNames = ImmutableSet.builder();
+            while (resultSet.next()) {
+                String schemaName = resultSet.getString("TABLE_SCHEM");
+                // skip internal schemas
+                if (!internalSchemaSet.contains(schemaName)) {
+                    schemaNames.add(schemaName);
+                }
+            }
+            // In Oracle, need to close the resultSet otherwise may casuse the following error:
+            // ORA-01000: maximum open cursors exceeded
+            resultSet.close();
+            return schemaNames.build();
+        } catch (SQLException e) {
+            throw new StarRocksConnectorException(e.getMessage());
+        }
+    }
     @Override
     public ResultSet getTables(Connection connection, String dbName) throws SQLException {
         return connection.getMetaData().getTables(connection.getCatalog(), dbName, null,
@@ -57,9 +89,6 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                     columnSet.getInt("COLUMN_SIZE"),
                     columnSet.getInt("DECIMAL_DIGITS"));
             String columnName = columnSet.getString("COLUMN_NAME");
-            if (!columnName.equals(columnName.toLowerCase())) {
-                columnName = "\"" + columnName + "\"";
-            }
             fullSchema.add(new Column(columnName, type,
                     columnSet.getString("IS_NULLABLE").equals("YES")));
         }
@@ -86,17 +115,17 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     public Type convertColumnType(int dataType, String typeName, int columnSize, int digits) {
         PrimitiveType primitiveType;
         switch (dataType) {
-            // VARCHAR2(n)
+            // VARCHAR2(size [BYTE | CHAR])
             case Types.VARCHAR:
-            // NVARCHAR2(n)
+            // NVARCHAR2(size)
             case Types.NVARCHAR:
                 return ScalarType.createVarcharType(columnSize);
-            // CHAR(n)
+            // CHAR[(size [BYTE | CHAR])]
             case Types.CHAR:
-            // NCHAR(n)
+            // NCHAR[(size)]
             case Types.NCHAR:
                 return ScalarType.createCharType(columnSize);
-            // RAW(n)
+            // RAW(size)
             case Types.VARBINARY:
                 return ScalarType.createVarbinary(columnSize);
             // LONG RAW
@@ -113,7 +142,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             case Types.NUMERIC:
                 primitiveType = PrimitiveType.DECIMAL32;
                 break;
-            // FLOAT(n)
+            // FLOAT[(p)]
             case Types.FLOAT:
                 primitiveType = PrimitiveType.FLOAT;
                 break;
