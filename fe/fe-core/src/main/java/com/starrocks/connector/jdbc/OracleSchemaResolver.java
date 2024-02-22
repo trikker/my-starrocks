@@ -158,7 +158,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
             // FLOAT[(p)]
             case Types.FLOAT:
-                primitiveType = PrimitiveType.FLOAT;
+                primitiveType = PrimitiveType.DOUBLE;
                 break;
 
             // DATE
@@ -182,7 +182,9 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         if (primitiveType != PrimitiveType.DECIMAL32) {
             return ScalarType.createType(primitiveType);
         } else {
-            int precision = columnSize + max(-digits, 0);
+            // 1. In Oracle, digits can be negtive. So precision should be precision - digits after being converted.
+            // 2. In Oracle, columnSize can be less than digits. So precision should be no less than digits.
+            int precision = max(digits, columnSize + max(-digits, 0));
             // if user not specify NUMBER precision and scale, the default value is 0,
             // we can't defer the precision and scale, can only deal it as string.
 
