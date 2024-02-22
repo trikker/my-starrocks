@@ -254,7 +254,7 @@ StatusOr<LogicalType> JDBCScanner::_precheck_data_type(const std::string& java_c
                     slot_desc->col_name()));
         }
         return TYPE_DOUBLE;
-    } else if (java_class == "java.sql.Timestamp") {
+    } else if (java_class == "java.sql.Timestamp" || java_class == "oracle.sql.TIMESTAMP") {
         if (type != TYPE_DATETIME) {
             return Status::NotSupported(fmt::format(
                     "Type mismatches on column[{}], JDBC result type is Timestamp, please set the type to datetime",

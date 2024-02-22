@@ -159,7 +159,8 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 primitiveType = PrimitiveType.DATETIME;
                 break;
 
-            // INTERVAL, ROWID, UROWID, BFILE
+            // INTERVAL, ROWID, UROWID, BFILE, BINARY_FLOAT, BINARY_DOUBLE, TIMESTAMP WITH [LOCAL] TIME ZONE
+            // UROWID, BLOB and BFILE
             default:
                 if ((typeName.startsWith("INTERVAL") || typeName.equals("ROWID") ||
                         typeName.equals("BINARY_FLOAT") || typeName.equals("BINARY_DOUBLE")) ||
@@ -178,7 +179,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         if (primitiveType != PrimitiveType.DECIMAL32) {
             return ScalarType.createType(primitiveType);
         } else {
-            // 1. In Oracle, digits can be negtive. So precision should be precision - digits after being converted.
+            // 1. In Oracle, digits can be negtive. So precision should be precision + |digits| after being converted.
             // 2. In Oracle, columnSize can be less than digits. So precision should be no less than digits.
             int precision = max(digits, columnSize + max(-digits, 0));
             // if user not specify NUMBER precision and scale, the default value is 0,
