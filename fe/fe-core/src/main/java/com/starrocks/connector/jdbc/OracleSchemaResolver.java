@@ -129,10 +129,6 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 // CHAR(N CHAR) can hold N characters which is up to N * 3 bytes in UTF8.
                 return ScalarType.createCharType(columnSize * 3);
 
-            // TIMESTAMP: Actually StarRocks doesn't support TIMESTAMP now, so use string.
-            case Types.TIMESTAMP:
-                return ScalarType.createVarcharType(50);
-
             // RAW(size), can be up to 32767 bytes
             case Types.VARBINARY:
             // LONG RAW, can be up to 2GB bytes
@@ -146,9 +142,6 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             // NCLOB, maximum size is (4 gigabytes - 1) * (database block size).
             // WARN: length of max_varchar_length(1048576) may be NOT enough.
             case Types.NCLOB:
-            // BLOB, maximum size is (4 gigabytes - 1)
-            // WARN: length of max_varchar_length(1048576) may be NOT enough.
-            case Types.BLOB:
                 return ScalarType.createOlapMaxVarcharType();
 
             // NUMBER[(p[,s])]
@@ -161,19 +154,22 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 primitiveType = PrimitiveType.DOUBLE;
                 break;
 
-            // DATE
-            case Types.DATE:
+            // DATE, TIMESTAMP
+            case Types.TIMESTAMP:
                 primitiveType = PrimitiveType.DATETIME;
                 break;
 
             // INTERVAL, ROWID, UROWID, BFILE
             default:
-                if (typeName.equals("INTERVAL") || typeName.equals("ROWID")) {
-                    return ScalarType.createVarcharType(50);
+                if ((typeName.startsWith("INTERVAL") || typeName.equals("ROWID") ||
+                    typeName.equals("BINARY_FLOAT") || typeName.equals("BINARY_DOUBLE")) ||
+                    // TIMESTAMP[(s)] WITH TIME ZONE and TIMESTAMP[(s)] WITH LOCAL TIME ZONE
+                    typeName.endsWith("TIME ZONE")) {
+                    return ScalarType.createVarcharType(100);
                 } else if (typeName.equals("UROWID")) {
                     return ScalarType.createVarcharType(4000);
                 } else {
-                    // Currently, only BFILE will go here.
+                    // Currently, only BLOB and BFILE will go here.
                     primitiveType = PrimitiveType.UNKNOWN_TYPE;
                 }
                 break;
