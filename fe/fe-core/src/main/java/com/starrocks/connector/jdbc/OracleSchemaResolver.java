@@ -161,11 +161,15 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
             // BINARY_FLOAT, BINARY_DOUBLE, INTERVAL, ROWID, TIMESTAMP WITH [LOCAL] TIME ZONE, UROWID, BLOB, BFILE
             default:
-                if (typeName.equals("BINARY_FLOAT") || typeName.equals("BINARY_DOUBLE")) {
+                if (typeName.equals("BINARY_FLOAT")) {
+                    primitiveType = PrimitiveType.FLOAT;
+                } else if (typeName.equals("BINARY_DOUBLE")) {
                     primitiveType = PrimitiveType.DOUBLE;
-                } else if (typeName.startsWith("INTERVAL") || typeName.equals("ROWID") ||
+                } else if (typeName.startsWith("INTERVAL") // INTERVAL
+                        // ROWID
+                        || typeName.equals("ROWID")
                         // TIMESTAMP[(s)] WITH TIME ZONE and TIMESTAMP[(s)] WITH LOCAL TIME ZONE
-                        typeName.endsWith("TIME ZONE")) {
+                        || typeName.endsWith("TIME ZONE")) {
                     return ScalarType.createVarcharType(100);
                 } else if (typeName.equals("UROWID")) {
                     return ScalarType.createVarcharType(4000);
