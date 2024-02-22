@@ -72,7 +72,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     @Override
     public ResultSet getTables(Connection connection, String dbName) throws SQLException {
         return connection.getMetaData().getTables(connection.getCatalog(), dbName, null,
-                new String[] {"TABLE", "VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE"});
+                new String[] {"TABLE", "SYNONYM", "VIEW", "MATERIALIZED VIEW"});
     }
 
     @Override
@@ -114,49 +114,68 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     @Override
     public Type convertColumnType(int dataType, String typeName, int columnSize, int digits) {
         PrimitiveType primitiveType;
-        switch (dataType) {
+            switch (dataType) {
             // VARCHAR2(size [BYTE | CHAR])
             case Types.VARCHAR:
             // NVARCHAR2(size)
             case Types.NVARCHAR:
-                return ScalarType.createVarcharType(columnSize);
+                // VARCHAR2(N CHAR) can hold N characters which is up to N * 3 bytes in UTF8.
+                return ScalarType.createVarcharType(columnSize * 3);
+
             // CHAR[(size [BYTE | CHAR])]
             case Types.CHAR:
             // NCHAR[(size)]
             case Types.NCHAR:
-                return ScalarType.createCharType(columnSize);
-            // RAW(size)
+                // CHAR(N CHAR) can hold N characters which is up to N * 3 bytes in UTF8.
+                return ScalarType.createCharType(columnSize * 3);
+
+            // TIMESTAMP: Actually StarRocks doesn't support TIMESTAMP now, so use string.
+            case Types.TIMESTAMP:
+                return ScalarType.createVarcharType(50);
+
+            // RAW(size), can be up to 32767 bytes
             case Types.VARBINARY:
-                return ScalarType.createVarbinary(columnSize);
-            // LONG RAW
+            // LONG RAW, can be up to 2GB bytes
             case Types.LONGVARBINARY:
-                return ScalarType.createVarbinary(1048576);
-            // LONG
+            // LONG, can be up to 2GB bytes
+            // WARN: length of max_varchar_length(1048576) may be NOT enough.
             case Types.LONGVARCHAR:
-            // CLOB
+            // CLOB, maximum size is (4 gigabytes - 1) * (database block size).
+            // WARN: length of max_varchar_length(1048576) may be NOT enough.
             case Types.CLOB:
-            // NCLOB
+            // NCLOB, maximum size is (4 gigabytes - 1) * (database block size).
+            // WARN: length of max_varchar_length(1048576) may be NOT enough.
             case Types.NCLOB:
-                return ScalarType.createDefaultString();
+            // BLOB, maximum size is (4 gigabytes - 1)
+            // WARN: length of max_varchar_length(1048576) may be NOT enough.
+            case Types.BLOB:
+                return ScalarType.createOlapMaxVarcharType();
+
             // NUMBER[(p[,s])]
             case Types.NUMERIC:
                 primitiveType = PrimitiveType.DECIMAL32;
                 break;
+
             // FLOAT[(p)]
             case Types.FLOAT:
                 primitiveType = PrimitiveType.FLOAT;
                 break;
-            // DATE, @TODO, should be DATETIME?
+
+            // DATE
             case Types.DATE:
-                primitiveType = PrimitiveType.DATE;
-                break;
-            case Types.TIMESTAMP:
-                // Actually StarRocks doesn't support TIMESTAMP now.
                 primitiveType = PrimitiveType.DATETIME;
                 break;
-            // ROWID, UROWID(n), BLOB, BFILE
+
+            // INTERVAL, ROWID, UROWID, BFILE
             default:
-                primitiveType = PrimitiveType.UNKNOWN_TYPE;
+                if (typeName.equals("INTERVAL") || typeName.equals("ROWID")) {
+                    return ScalarType.createVarcharType(50);
+                } else if (typeName.equals("UROWID")) {
+                    return ScalarType.createVarcharType(4000);
+                } else {
+                    // Currently, only BFILE will go here.
+                    primitiveType = PrimitiveType.UNKNOWN_TYPE;
+                }
                 break;
         }
 
@@ -166,7 +185,9 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             int precision = columnSize + max(-digits, 0);
             // if user not specify NUMBER precision and scale, the default value is 0,
             // we can't defer the precision and scale, can only deal it as string.
-            if (precision == 0) {
+
+            // When NUMBER has no p and s, columnSize is 0 and digits is -127.
+            if (columnSize == 0) {
                 return ScalarType.createVarcharType(ScalarType.getOlapMaxVarcharLength());
             }
             return ScalarType.createUnifiedDecimalType(precision, max(digits, 0));
