@@ -89,8 +89,10 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                     columnSet.getInt("COLUMN_SIZE"),
                     columnSet.getInt("DECIMAL_DIGITS"));
             String columnName = columnSet.getString("COLUMN_NAME");
-            // If the column name in Oracle is lower case, like "col", we must use "col" rather than col.
-            columnName = "\"" + columnName + "\"";
+            // If the column name in Oracle is not in upper case, like "col", we must use "col" rather than col.
+            if (!columnName.equals(columnName.toUpperCase())) {
+                columnName = "\"" + columnName + "\"";
+            }
             fullSchema.add(new Column(columnName, type,
                     columnSet.getString("IS_NULLABLE").equals("YES")));
         }
