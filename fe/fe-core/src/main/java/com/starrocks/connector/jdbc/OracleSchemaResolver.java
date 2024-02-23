@@ -42,7 +42,7 @@ import static java.lang.Math.max;
 
 public class OracleSchemaResolver extends JDBCSchemaResolver {
 
-    private static final HashSet<String> internalSchemaSet = new HashSet<>(Arrays.asList(
+    private static final HashSet<String> InternalSchemaSet = new HashSet<>(Arrays.asList(
             "ANONYMOUS", "APPQOSSYS", "AUDSYS", "CTXSYS", "DBSFWUSER",
             "DBSNMP", "DIP", "DVF", "DVSYS", "GGSYS", "GSMADMIN_INTERNAL",
             "GSMCATUSER", "GSMUSER", "LBACSYS", "MDDATA", "MDSYS",
@@ -57,7 +57,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             while (resultSet.next()) {
                 String schemaName = resultSet.getString("TABLE_SCHEM");
                 // skip internal schemas
-                if (!internalSchemaSet.contains(schemaName)) {
+                if (!InternalSchemaSet.contains(schemaName)) {
                     schemaNames.add(schemaName);
                 }
             }
