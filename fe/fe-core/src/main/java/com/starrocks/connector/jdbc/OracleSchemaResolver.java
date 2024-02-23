@@ -42,7 +42,7 @@ import static java.lang.Math.max;
 
 public class OracleSchemaResolver extends JDBCSchemaResolver {
 
-    private static HashSet<String> internalSchemaSet = new HashSet<>(Arrays.asList(
+    private static final HashSet<String> internalSchemaSet = new HashSet<>(Arrays.asList(
             "ANONYMOUS", "APPQOSSYS", "AUDSYS", "CTXSYS", "DBSFWUSER",
             "DBSNMP", "DIP", "DVF", "DVSYS", "GGSYS", "GSMADMIN_INTERNAL",
             "GSMCATUSER", "GSMUSER", "LBACSYS", "MDDATA", "MDSYS",
@@ -89,6 +89,8 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                     columnSet.getInt("COLUMN_SIZE"),
                     columnSet.getInt("DECIMAL_DIGITS"));
             String columnName = columnSet.getString("COLUMN_NAME");
+            // If the column name in Oracle is lower case, like "col", we must use "col" rather than col.
+            columnName = "\"" + columnName + "\"";
             fullSchema.add(new Column(columnName, type,
                     columnSet.getString("IS_NULLABLE").equals("YES")));
         }
