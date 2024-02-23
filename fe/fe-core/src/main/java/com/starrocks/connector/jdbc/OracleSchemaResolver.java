@@ -71,8 +71,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     }
     @Override
     public ResultSet getTables(Connection connection, String dbName) throws SQLException {
-        return connection.getMetaData().getTables(connection.getCatalog(), dbName, null,
-                new String[] {"TABLE", "SYNONYM", "VIEW", "MATERIALIZED VIEW"});
+        return connection.getMetaData().getTables(connection.getCatalog(), dbName, null, null);
     }
 
     @Override
