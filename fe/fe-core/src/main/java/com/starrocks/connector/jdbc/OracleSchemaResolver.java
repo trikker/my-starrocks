@@ -225,13 +225,13 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     @Override
     public List<String> listPartitionNames(Connection connection, String databaseName, String tableName) {
         String partitionNamesQuery =
-                "SELECT p.PARTITION_NAME" +
-                "FROM ALL_TAB_PARTITIONS p" +
-                "    join ALL_PART_TABLES t" +
-                "    ON p.TABLE_OWNER = t.OWNER" +
-                "    AND p.TABLE_NAME = t.TABLE_NAME" +
-                "where p.TABLE_OWNER = ?" +
-                "    AND p.TABLE_NAME = ?" +
+                "SELECT p.PARTITION_NAME " +
+                "FROM ALL_TAB_PARTITIONS p " +
+                "    join ALL_PART_TABLES t " +
+                "    ON p.TABLE_OWNER = t.OWNER " +
+                "    AND p.TABLE_NAME = t.TABLE_NAME " +
+                "where p.TABLE_OWNER = ? " +
+                "    AND p.TABLE_NAME = ? " +
                 "    AND t.PARTITIONING_TYPE IN ('RANGE')";
         try (PreparedStatement ps = connection.prepareStatement(partitionNamesQuery)) {
             ps.setString(1, databaseName);
@@ -257,13 +257,13 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
     @Override
     public List<String> listPartitionColumns(Connection connection, String databaseName, String tableName) {
-        String partitionColumnsQuery = "SELECT k.COLUMN_NAME AS PARTITION_EXPRESSION" +
-                "FROM ALL_PART_KEY_COLUMNS k" +
-                "    join ALL_PART_TABLES t" +
-                "    ON k.OWNER = t.OWNER" +
-                "    AND k.NAME = t.TABLE_NAME" +
-                "where k.OWNER = ?" +
-                "    AND k.NAME = ?" +
+        String partitionColumnsQuery = "SELECT k.COLUMN_NAME AS PARTITION_EXPRESSION " +
+                "FROM ALL_PART_KEY_COLUMNS k " +
+                "    join ALL_PART_TABLES t " +
+                "    ON k.OWNER = t.OWNER " +
+                "    AND k.NAME = t.TABLE_NAME " +
+                "where k.OWNER = ? " +
+                "    AND k.NAME = ? " +
                 "    AND t.PARTITIONING_TYPE IN ('RANGE')";
         try (PreparedStatement ps = connection.prepareStatement(partitionColumnsQuery)) {
             ps.setString(1, databaseName);
@@ -313,25 +313,25 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
     @NotNull
     private static String getPartitionQuery(Table table) {
-        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME, NVL(m.TIMESTAMP, (" +
-                "    SELECT STARTUP_TIME" +
-                "    FROM V$INSTANCE" +
-                "    )) AS MODIFIED_TIME" +
-                "FROM ALL_TAB_PARTITIONS p" +
-                "    LEFT JOIN ALL_TAB_MODIFICATIONS m" +
-                "    ON p.TABLE_OWNER = p.TABLE_OWNER" +
-                "      AND p.PARTITION_NAME = m.PARTITION_NAME" +
-                "WHERE p.TABLE_OWNER = ?" +
+        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME, NVL(m.TIMESTAMP, ( " +
+                "    SELECT STARTUP_TIME " +
+                "    FROM V$INSTANCE " +
+                "    )) AS MODIFIED_TIME " +
+                "FROM ALL_TAB_PARTITIONS p " +
+                "    LEFT JOIN ALL_TAB_MODIFICATIONS m " +
+                "    ON p.TABLE_OWNER = p.TABLE_OWNER " +
+                "      AND p.PARTITION_NAME = m.PARTITION_NAME " +
+                "WHERE p.TABLE_OWNER = ? " +
                 "    AND p.TABLE_NAME = ?";
-        final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME, NVL(m.TIMESTAMP, (" +
-                "    SELECT STARTUP_TIME" +
-                "    FROM V$INSTANCE" +
-                "  )) AS MODIFIED_TIME" +
-                "FROM ALL_TABLES t" +
-                "  LEFT JOIN ALL_TAB_MODIFICATIONS m" +
-                "  ON t.OWNER = m.TABLE_OWNER" +
-                "    AND t.TABLE_NAME = m.TABLE_NAME" +
-                "WHERE t.OWNER = ?" +
+        final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME, NVL(m.TIMESTAMP, ( " +
+                "    SELECT STARTUP_TIME " +
+                "    FROM V$INSTANCE " +
+                "  )) AS MODIFIED_TIME " +
+                "FROM ALL_TABLES t " +
+                "  LEFT JOIN ALL_TAB_MODIFICATIONS m " +
+                "  ON t.OWNER = m.TABLE_OWNER " +
+                "    AND t.TABLE_NAME = m.TABLE_NAME " +
+                "WHERE t.OWNER = ? " +
                 "  AND t.TABLE_NAME = ?";
         return table.isUnPartitioned() ? nonPartitionQuery : partitionsQuery;
     }
