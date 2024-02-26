@@ -15,6 +15,7 @@
 
 package com.starrocks.connector.jdbc;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.starrocks.catalog.Column;
@@ -26,11 +27,9 @@ import com.starrocks.catalog.Type;
 import com.starrocks.common.DdlException;
 import com.starrocks.common.util.TimeUtils;
 import com.starrocks.connector.exception.StarRocksConnectorException;
+import org.jetbrains.annotations.NotNull;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -69,9 +68,28 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
             throw new StarRocksConnectorException(e.getMessage());
         }
     }
+
+    @Override
+    public boolean checkAndSetSupportPartitionInformation(Connection connection) {
+        String getSupportPartitioningQuery = "SELECT VALUE FROM v$option WHERE parameter = 'Partitioning'";
+        try (PreparedStatement ps = connection.prepareStatement(getSupportPartitioningQuery);
+            ResultSet rs = ps.executeQuery();) {
+            while (rs.next()) {
+                String value = rs.getString("VALUE");
+                if (value.equalsIgnoreCase("TRUE")) {
+                    return this.supportPartitionInformation = true;
+                }
+            }
+        } catch (SQLException | NullPointerException e) {
+            throw new StarRocksConnectorException(e.getMessage());
+        }
+        return this.supportPartitionInformation = false;
+    }
+
     @Override
     public ResultSet getTables(Connection connection, String dbName) throws SQLException {
-        return connection.getMetaData().getTables(connection.getCatalog(), dbName, null, null);
+        return connection.getMetaData().getTables(connection.getCatalog(), dbName, null,
+                new String[] {"TABLE", "VIEW"});
     }
 
     @Override
@@ -200,8 +218,118 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         }
     }
 
+    @Override
+    public List<String> listPartitionNames(Connection connection, String databaseName, String tableName) {
+        String partitionNamesQuery =
+                "SELECT p.PARTITION_NAME" +
+                "FROM ALL_TAB_PARTITIONS p" +
+                "    join ALL_PART_TABLES t" +
+                "    ON p.TABLE_OWNER = t.OWNER" +
+                "    AND p.TABLE_NAME = t.TABLE_NAME" +
+                "where p.TABLE_OWNER = ?" +
+                "    AND p.TABLE_NAME = ?" +
+                "    AND t.PARTITIONING_TYPE IN ('RANGE')";
+        try (PreparedStatement ps = connection.prepareStatement(partitionNamesQuery)) {
+            ps.setString(1, databaseName);
+            ps.setString(2, tableName);
+            ResultSet rs = ps.executeQuery();
+            ImmutableList.Builder<String> list = ImmutableList.builder();
+            if (null != rs) {
+                while (rs.next()) {
+                    String[] partitionNames = rs.getString("NAME").
+                            replace("'", "").split(",");
+                    for (String partitionName : partitionNames) {
+                        list.add(partitionName);
+                    }
+                }
+                return list.build();
+            } else {
+                return Lists.newArrayList();
+            }
+        } catch (SQLException | NullPointerException e) {
+            throw new StarRocksConnectorException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<String> listPartitionColumns(Connection connection, String databaseName, String tableName) {
+        String partitionColumnsQuery = "SELECT k.COLUMN_NAME AS PARTITION_EXPRESSION" +
+                "FROM ALL_PART_KEY_COLUMNS k" +
+                "    join ALL_PART_TABLES t" +
+                "    ON k.OWNER = t.OWNER" +
+                "    AND k.NAME = t.TABLE_NAME" +
+                "where k.OWNER = ?" +
+                "    AND k.NAME = ?" +
+                "    AND t.PARTITIONING_TYPE IN ('RANGE')";
+        try (PreparedStatement ps = connection.prepareStatement(partitionColumnsQuery)) {
+            ps.setString(1, databaseName);
+            ps.setString(2, tableName);
+            ResultSet rs = ps.executeQuery();
+            ImmutableList.Builder<String> list = ImmutableList.builder();
+            if (null != rs) {
+                while (rs.next()) {
+                    String partitionColumn = rs.getString("PARTITION_EXPRESSION")
+                            .replace("`", "");
+                    list.add(partitionColumn);
+                }
+                return list.build();
+            } else {
+                return Lists.newArrayList();
+            }
+        } catch (SQLException | NullPointerException e) {
+            throw new StarRocksConnectorException(e.getMessage(), e);
+        }
+    }
+
     public List<Partition> getPartitions(Connection connection, Table table) {
-        return Lists.newArrayList(new Partition(table.getName(), TimeUtils.getEpochSeconds()));
+        JDBCTable jdbcTable = (JDBCTable) table;
+        String query = getPartitionQuery(table);
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, jdbcTable.getDbName());
+            ps.setString(2, jdbcTable.getJdbcTable());
+            ResultSet rs = ps.executeQuery();
+            ImmutableList.Builder<Partition> list = ImmutableList.builder();
+            if (null != rs) {
+                while (rs.next()) {
+                    String[] partitionNames = rs.getString("NAME").
+                            replace("'", "").split(",");
+                    long createTime = rs.getTimestamp("MODIFIED_TIME").getTime();
+                    for (String partitionName : partitionNames) {
+                        list.add(new Partition(partitionName, createTime));
+                    }
+                }
+                return list.build();
+            } else {
+                return Lists.newArrayList();
+            }
+        } catch (SQLException | NullPointerException e) {
+            throw new StarRocksConnectorException(e.getMessage(), e);
+        }
+    }
+
+    @NotNull
+    private static String getPartitionQuery(Table table) {
+        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME, NVL(m.TIMESTAMP, (" +
+                "    SELECT STARTUP_TIME" +
+                "    FROM V$INSTANCE" +
+                "    )) AS MODIFIED_TIME" +
+                "FROM ALL_TAB_PARTITIONS p" +
+                "    LEFT JOIN ALL_TAB_MODIFICATIONS m" +
+                "    ON p.TABLE_OWNER = p.TABLE_OWNER" +
+                "    AND p.PARTITION_NAME = m.PARTITION_NAME" +
+                "WHERE p.TABLE_OWNER = ?" +
+                "    AND p.TABLE_NAME = ?";
+        final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME, NVL(m.TIMESTAMP, (" +
+                "    SELECT STARTUP_TIME" +
+                "    FROM V$INSTANCE" +
+                "  )) AS MODIFIED_TIME" +
+                "FROM ALL_TABLES t" +
+                "  LEFT JOIN ALL_TAB_MODIFICATIONS m" +
+                "  ON t.OWNER = m.TABLE_OWNER" +
+                "    AND t.TABLE_NAME = m.TABLE_NAME" +
+                "WHERE t.OWNER = ?" +
+                "  AND t.TABLE_NAME = ?";
+        return table.isUnPartitioned() ? nonPartitionQuery : partitionsQuery;
     }
 
 }
