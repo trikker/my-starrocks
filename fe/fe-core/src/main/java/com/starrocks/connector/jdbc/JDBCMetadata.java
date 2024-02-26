@@ -180,6 +180,7 @@ public class JDBCMetadata implements ConnectorMetadata {
                     String tableName = resultSet.getString("TABLE_NAME");
                     list.add(tableName);
                 }
+                resultSet.close();
                 return list.build();
             }
         } catch (SQLException e) {
@@ -195,6 +196,7 @@ public class JDBCMetadata implements ConnectorMetadata {
                     try (Connection connection = getConnection()) {
                         ResultSet columnSet = schemaResolver.getColumns(connection, dbName, tblName);
                         List<Column> fullSchema = schemaResolver.convertToSRTable(columnSet);
+                        columnSet.close();
                         List<Column> partitionColumns = Lists.newArrayList();
                         if (schemaResolver.isSupportPartitionInformation()) {
                             partitionColumns = listPartitionColumns(dbName, tblName, fullSchema);
