@@ -192,7 +192,7 @@ public class JDBCMetadata implements ConnectorMetadata {
         JDBCTableName jdbcTable = new JDBCTableName(null, dbName, tblName);
         return tableInstanceCache.get(jdbcTable,
                 k -> {
-                    try (Connection connection = getConnection();) {
+                    try (Connection connection = getConnection()) {
                         ResultSet columnSet = schemaResolver.getColumns(connection, dbName, tblName);
                         List<Column> fullSchema = schemaResolver.convertToSRTable(columnSet);
                         columnSet.close();

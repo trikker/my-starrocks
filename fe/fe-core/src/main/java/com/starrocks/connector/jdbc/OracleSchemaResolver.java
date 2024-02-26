@@ -25,11 +25,13 @@ import com.starrocks.catalog.ScalarType;
 import com.starrocks.catalog.Table;
 import com.starrocks.catalog.Type;
 import com.starrocks.common.DdlException;
-import com.starrocks.common.util.TimeUtils;
 import com.starrocks.connector.exception.StarRocksConnectorException;
 import org.jetbrains.annotations.NotNull;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -73,7 +75,8 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     public boolean checkAndSetSupportPartitionInformation(Connection connection) {
         String getSupportPartitioningQuery = "SELECT VALUE FROM v$option WHERE parameter = 'Partitioning'";
         try (PreparedStatement ps = connection.prepareStatement(getSupportPartitioningQuery);
-            ResultSet rs = ps.executeQuery();) {
+             ResultSet rs = ps.executeQuery();
+            ) {
             while (rs.next()) {
                 String value = rs.getString("VALUE");
                 if (value.equalsIgnoreCase("TRUE")) {
@@ -316,7 +319,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 "FROM ALL_TAB_PARTITIONS p" +
                 "    LEFT JOIN ALL_TAB_MODIFICATIONS m" +
                 "    ON p.TABLE_OWNER = p.TABLE_OWNER" +
-                "    AND p.PARTITION_NAME = m.PARTITION_NAME" +
+                "      AND p.PARTITION_NAME = m.PARTITION_NAME" +
                 "WHERE p.TABLE_OWNER = ?" +
                 "    AND p.TABLE_NAME = ?";
         final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME, NVL(m.TIMESTAMP, (" +
