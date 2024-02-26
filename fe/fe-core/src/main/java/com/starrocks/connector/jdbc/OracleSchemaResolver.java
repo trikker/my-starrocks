@@ -29,9 +29,9 @@ import com.starrocks.connector.exception.StarRocksConnectorException;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -75,7 +75,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     public boolean checkAndSetSupportPartitionInformation(Connection connection) {
         String getSupportPartitioningQuery = "SELECT VALUE FROM v$option WHERE parameter = 'Partitioning'";
         try (PreparedStatement ps = connection.prepareStatement(getSupportPartitioningQuery);
-             ResultSet rs = ps.executeQuery();
+                ResultSet rs = ps.executeQuery();
             ) {
             while (rs.next()) {
                 String value = rs.getString("VALUE");
