@@ -243,7 +243,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
     @Override
     public List<String> listPartitionNames(Connection connection, String databaseName, String tableName) {
         String partitionNamesQuery =
-                "SELECT p.PARTITION_NAME AS NAME " +
+                "SELECT p.HIGH_VALUE AS NAME " +
                 "FROM ALL_TAB_PARTITIONS p " +
                 "    join ALL_PART_TABLES t " +
                 "    ON p.TABLE_OWNER = t.OWNER " +
