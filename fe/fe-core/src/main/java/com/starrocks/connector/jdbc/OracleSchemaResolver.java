@@ -331,7 +331,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
     @NotNull
     private static String getPartitionQuery(Table table) {
-        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME," +
+        final String partitionsQuery = "SELECT p.HIGH_VALUE AS NAME," +
                 "    GREATEST(o.CREATED," +
                 "        o.LAST_DDL_TIME, NVL(m.TIMESTAMP, ( " +
                 "        SELECT STARTUP_TIME " +
