@@ -24,7 +24,7 @@ import com.starrocks.catalog.PrimitiveType;
 import com.starrocks.catalog.ScalarType;
 import com.starrocks.catalog.Table;
 import com.starrocks.catalog.Type;
-import com.starrocks.common.DdlException;
+//import com.starrocks.common.DdlException;
 import com.starrocks.connector.exception.StarRocksConnectorException;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,10 +35,10 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+//import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+//import java.util.Map;
 
 import static java.lang.Math.max;
 
@@ -120,7 +120,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         return fullSchema;
     }
 
-/*    @Override
+    /*@Override
     public Table getTable(long id, String name, List<Column> schema, String dbName, String catalogName,
                           Map<String, String> properties) throws DdlException {
         Map<String, String> newProp = new HashMap<>(properties);
