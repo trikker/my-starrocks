@@ -211,7 +211,7 @@ public abstract class ConnectorPartitionTraits {
                 return Lists.newArrayList(table.getName());
             }
             return GlobalStateMgr.getCurrentState().getMetadataMgr().listPartitionNames(
-                    table.getCatalogName(), getDbName(), getTableName());
+                    table.getCatalogName(), getDbName(), table.getName());
         }
 
         @Override
