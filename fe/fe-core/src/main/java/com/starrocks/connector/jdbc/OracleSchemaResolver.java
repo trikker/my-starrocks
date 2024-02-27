@@ -171,7 +171,25 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
             // NUMBER[(p[,s])]
             case Types.NUMERIC:
-                primitiveType = PrimitiveType.DECIMAL32;
+                if (digits <= 0) {
+                    columnSize += digits;
+                    if (columnSize < 3) {
+                        return ScalarType.TINYINT;
+                    } else if (columnSize < 5) {
+                        return ScalarType.SMALLINT;
+                    } else if (columnSize < 10) {
+                        return ScalarType.INT;
+                    } else if (columnSize < 19) {
+                        return ScalarType.BIGINT;
+                    } else if (columnSize < 39) {
+                        // LARGEINT can be up to 39 numbers
+                        return ScalarType.LARGEINT;
+                    } else {
+                        return ScalarType.createVarcharType(60);
+                    }
+                } else {
+                    primitiveType = PrimitiveType.DECIMAL32;
+                }
                 break;
 
             // FLOAT[(p)]
