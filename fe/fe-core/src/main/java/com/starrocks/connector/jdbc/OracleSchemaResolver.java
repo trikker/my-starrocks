@@ -335,5 +335,4 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
                 "  AND t.TABLE_NAME = ?";
         return table.isUnPartitioned() ? nonPartitionQuery : partitionsQuery;
     }
-
 }
