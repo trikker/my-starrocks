@@ -120,7 +120,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         return fullSchema;
     }
 
-    @Override
+/*    @Override
     public Table getTable(long id, String name, List<Column> schema, String dbName, String catalogName,
                           Map<String, String> properties) throws DdlException {
         Map<String, String> newProp = new HashMap<>(properties);
@@ -134,7 +134,7 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
         Map<String, String> newProp = new HashMap<>(properties);
         newProp.putIfAbsent(JDBCTable.JDBC_TABLENAME, "\"" + dbName + "\"" + "." + "\"" + name + "\"");
         return new JDBCTable(id, name, schema, partitionColumns, dbName, catalogName, newProp);
-    }
+    }*/
 
     @Override
     public Type convertColumnType(int dataType, String typeName, int columnSize, int digits) {
