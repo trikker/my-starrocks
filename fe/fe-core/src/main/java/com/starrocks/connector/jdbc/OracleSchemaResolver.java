@@ -313,24 +313,36 @@ public class OracleSchemaResolver extends JDBCSchemaResolver {
 
     @NotNull
     private static String getPartitionQuery(Table table) {
-        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME, NVL(m.TIMESTAMP, ( " +
-                "    SELECT STARTUP_TIME " +
-                "    FROM V$INSTANCE " +
-                "    )) AS MODIFIED_TIME " +
+        final String partitionsQuery = "SELECT p.PARTITION_NAME AS NAME," +
+                "    GREATEST(o.CREATED," +
+                "        o.LAST_DDL_TIME, NVL(m.TIMESTAMP, ( " +
+                "        SELECT STARTUP_TIME " +
+                "        FROM V$INSTANCE " +
+                "    ))) AS MODIFIED_TIME " +
                 "FROM ALL_TAB_PARTITIONS p " +
-                "    LEFT JOIN ALL_TAB_MODIFICATIONS m " +
+                "  JOIN ALL_OBJECTS o " +
+                "    ON p.TABLE_OWNER = o.OWNER " +
+                "      AND p.TABLE_NAME = o.OBJECT_NAME " +
+                "      AND p.PARTITION_NAME = o.SUBOBJECT_NAME " +
+                "  LEFT JOIN ALL_TAB_MODIFICATIONS m " +
                 "    ON p.TABLE_OWNER = p.TABLE_OWNER " +
+                "      AND p.TABLE_NAME = p.TABLE_NAME " +
                 "      AND p.PARTITION_NAME = m.PARTITION_NAME " +
                 "WHERE p.TABLE_OWNER = ? " +
                 "    AND p.TABLE_NAME = ?";
-        final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME, NVL(m.TIMESTAMP, ( " +
-                "    SELECT STARTUP_TIME " +
-                "    FROM V$INSTANCE " +
-                "  )) AS MODIFIED_TIME " +
+        final String nonPartitionQuery = "SELECT t.TABLE_NAME AS NAME," +
+                "    GREATEST(o.CREATED," +
+                "        o.LAST_DDL_TIME, NVL(m.TIMESTAMP, ( " +
+                "        SELECT STARTUP_TIME " +
+                "        FROM V$INSTANCE " +
+                "    ))) AS MODIFIED_TIME " +
                 "FROM ALL_TABLES t " +
+                "  JOIN ALL_OBJECTS o " +
+                "    ON t.OWNER = o.OWNER " +
+                "      AND t.TABLE_NAME = o.OBJECT_NAME " +
                 "  LEFT JOIN ALL_TAB_MODIFICATIONS m " +
-                "  ON t.OWNER = m.TABLE_OWNER " +
-                "    AND t.TABLE_NAME = m.TABLE_NAME " +
+                "    ON t.OWNER = m.TABLE_OWNER " +
+                "      AND t.TABLE_NAME = m.TABLE_NAME " +
                 "WHERE t.OWNER = ? " +
                 "  AND t.TABLE_NAME = ?";
         return table.isUnPartitioned() ? nonPartitionQuery : partitionsQuery;
